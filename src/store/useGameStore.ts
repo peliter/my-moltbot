@@ -1,11 +1,16 @@
 import { create } from 'zustand';
-import { GameState, Property, FinancialHistory, GameEvent } from '../types/game';
+import { GameState, Property, FinancialHistory } from '../types/game';
 import { calculatePropertyMonthlyFlow } from '../lib/finance-utils';
+import { RANDOM_EVENTS } from '../data/random-events';
 
 const INITIAL_CASH = 1000000;
-const INITIAL_AGE = 25 * 12; // 25 歲開始
+const INITIAL_AGE = 25 * 12;
 
-export const useGameStore = create<GameState>((set, get) => ({
+interface ExtendedGameState extends GameState {
+  lastEvent: { title: string; description: string } | null;
+}
+
+export const useGameStore = create<ExtendedGameState>((set, get) => ({
   playerName: 'Peliter',
   age: INITIAL_AGE,
   currentMonth: 0,
@@ -14,27 +19,42 @@ export const useGameStore = create<GameState>((set, get) => ({
   history: [],
   baseInterestRate: 0.02,
   marketTrend: 1.0,
+  lastEvent: null,
 
   nextMonth: () => {
     const state = get();
-    
-    // 1. 隨機事件處理 (假設 10% 機率發生波動)
-    let newMarketTrend = 1.0;
-    const random = Math.random();
-    if (random > 0.95) newMarketTrend = 1.05; // 房價大漲 5%
-    else if (random < 0.05) newMarketTrend = 0.95; // 房價大跌 5%
-    else newMarketTrend = 1.0 + (Math.random() * 0.01 - 0.005); // 平時微幅波動 -0.5% ~ +0.5%
-
     let newCash = state.cash;
-    const updatedProperties = state.properties.map((prop) => {
-      const flow = calculatePropertyMonthlyFlow(prop);
+    let eventToDisplay = null;
+    let newMarketTrend = 1.0 + (Math.random() * 0.01 - 0.005);
+    let eventInterestMod = 0;
+    let eventRentMod = 1.0;
+
+    // 隨機事件處理 (5% 機率)
+    if (Math.random() < 0.05) {
+      const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+      eventToDisplay = { title: event.title, description: event.description };
       
-      // 現金變動 = 租金收入 - 利息支出 - 本金償還
+      if (event.impactType === 'cash') newCash += event.value;
+      if (event.impactType === 'market') newMarketTrend *= event.value;
+      if (event.impactType === 'interest') eventInterestMod = event.value;
+      if (event.impactType === 'rent') eventRentMod = event.value;
+    }
+
+    const updatedProperties = state.properties.map((prop) => {
+      // 應用事件影響
+      const currentProp = {
+        ...prop,
+        interestRate: prop.interestRate + eventInterestMod,
+        monthlyRent: prop.monthlyRent * eventRentMod
+      };
+      
+      const flow = calculatePropertyMonthlyFlow(currentProp);
       newCash += (flow.rentIncome - flow.interestPaid - flow.principalPaid);
       
-      // 更新房產狀態
       return {
         ...prop,
+        interestRate: currentProp.interestRate,
+        monthlyRent: currentProp.monthlyRent,
         loanAmount: prop.loanAmount - flow.principalPaid,
         remainingTerm: prop.remainingTerm - 1,
         gracePeriod: Math.max(0, prop.gracePeriod - 1),
@@ -42,10 +62,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       };
     }).filter(prop => prop.remainingTerm >= 0);
 
-    // 每月生活費扣除 (假設每月基本開銷 3 萬)
-    newCash -= 30000;
+    newCash -= 30000; // 生活費
 
-    // 2. 結算當月歷史
     const totalPropertyValue = updatedProperties.reduce((sum, p) => sum + p.currentValue, 0);
     const totalDebt = updatedProperties.reduce((sum, p) => sum + p.loanAmount, 0);
     
@@ -62,17 +80,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       age: state.age + 1,
       cash: newCash,
       properties: updatedProperties,
-      history: [...state.history, newHistoryRecord].slice(-360), // 只保留最近 30 年數據
-      marketTrend: newMarketTrend
+      history: [...state.history, newHistoryRecord].slice(-360),
+      marketTrend: newMarketTrend,
+      lastEvent: eventToDisplay
     }));
   },
 
   buyProperty: (propData) => {
     const state = get();
     const downPayment = propData.purchasePrice - propData.loanAmount;
-    
     if (state.cash < downPayment) return;
-
     const newProperty: Property = {
       ...propData,
       id: Math.random().toString(36).substr(2, 9),
@@ -80,7 +97,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       purchaseAge: state.age,
       gracePeriod: propData.gracePeriod || 0
     };
-
     set((state) => ({
       cash: state.cash - downPayment,
       properties: [...state.properties, newProperty]
@@ -91,9 +107,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     const property = state.properties.find(p => p.id === id);
     if (!property) return;
-
     const gain = property.currentValue - property.loanAmount;
-    
     set((state) => ({
       cash: state.cash + gain,
       properties: state.properties.filter(p => p.id !== id)
@@ -103,7 +117,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   makeExtraPayment: (id, amount) => {
     const state = get();
     if (state.cash < amount) return;
-
     set((state) => ({
       cash: state.cash - amount,
       properties: state.properties.map(p => 
@@ -117,6 +130,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     currentMonth: 0,
     cash: INITIAL_CASH,
     properties: [],
-    history: []
+    history: [],
+    lastEvent: null
   })
 }));
