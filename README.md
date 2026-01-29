@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 《槓桿人生：房產模擬器》 (Leverage Life)
 
-## Getting Started
+這是一款使用 Next.js 開發的 Web 遊戲，模擬在 30 年內透過房產投資達成資產最大化的財務模擬器。
 
-First, run the development server:
+## 🚀 快速啟動
+
+在 GitHub Codespaces 中，執行以下指令：
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+啟動後，前端將運行在 `3000` 端口。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠 技術棧
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **框架:** Next.js 14+ (App Router)
+- **語言:** TypeScript
+- **樣式:** Tailwind CSS
+- **狀態管理:** Zustand
+- **圖標:** Lucide React
 
-## Learn More
+## 📖 遊戲機制
 
-To learn more about Next.js, take a look at the following resources:
+- **初始資金:** 1,000,000 TWD
+- **財務模型:** 包含房貸利率計算、本息平均攤還、LTV 監控。
+- **目標:** 透過精確的財務槓桿，在退休前累積最大化淨資產。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📂 目錄結構
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/types/game.ts`: 遊戲核心資料類型。
+- `src/store/useGameStore.ts`: 遊戲邏輯與狀態管理。
+- `src/components/FinanceDashboard.tsx`: 財務儀表板組件。
+- `src/lib/finance-utils.ts`: 房貸與財務計算公式。
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Developed by Pi (小派) 🥧
