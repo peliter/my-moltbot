@@ -3,6 +3,7 @@ import PropertyList from '@/components/PropertyList';
 import PropertyMarket from '@/components/PropertyMarket';
 import AssetChart from '@/components/AssetChart';
 import EventNotification from '@/components/EventNotification';
+import AchievementSystem from '@/components/AchievementSystem';
 
 export default function Home() {
   return (
@@ -10,27 +11,24 @@ export default function Home() {
       <FinanceDashboard />
       
       <div className="max-w-6xl mx-auto px-4 mt-8">
-        {/* 隨機事件通知區 */}
         <EventNotification />
 
-        {/* 第一行：圖表 */}
-        <div className="mb-8">
-          <AssetChart />
-        </div>
-
-        {/* 第二行：主要內容 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* 左側主要區域 */}
+          <div className="lg:col-span-3 space-y-8">
+            <AssetChart />
             <PropertyList />
           </div>
           
+          {/* 右側側邊欄 */}
           <div className="space-y-8">
+            <AchievementSystem />
             <PropertyMarket />
             
             <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl">
-              <h3 className="text-white font-bold mb-4">市場情報</h3>
-              <p className="text-slate-400 text-sm italic leading-relaxed">
-                「房產投資不僅是買賣，更是對宏觀經濟的應對。留意隨時可能發生的市場事件，它們將直接影響你的現金流與資產估值...」
+              <h3 className="text-white font-bold mb-4 text-sm uppercase tracking-wider">市場情報</h3>
+              <p className="text-slate-400 text-xs italic leading-relaxed">
+                「房產投資不僅是買賣，更是對宏觀經濟的應對。達成特定成就將標誌著你的財務自由之路...」
               </p>
             </div>
           </div>

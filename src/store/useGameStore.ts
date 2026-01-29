@@ -2,12 +2,15 @@ import { create } from 'zustand';
 import { GameState, Property, FinancialHistory } from '../types/game';
 import { calculatePropertyMonthlyFlow } from '../lib/finance-utils';
 import { RANDOM_EVENTS } from '../data/random-events';
+import { ACHIEVEMENTS } from '../data/achievements';
 
 const INITIAL_CASH = 1000000;
 const INITIAL_AGE = 25 * 12;
 
 interface ExtendedGameState extends GameState {
   lastEvent: { title: string; description: string } | null;
+  unlockedAchievements: string[];
+  checkAchievements: () => void;
 }
 
 export const useGameStore = create<ExtendedGameState>((set, get) => ({
@@ -20,6 +23,18 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
   baseInterestRate: 0.02,
   marketTrend: 1.0,
   lastEvent: null,
+  unlockedAchievements: [],
+
+  checkAchievements: () => {
+    const state = get();
+    const newUnlocked = ACHIEVEMENTS
+      .filter(a => !state.unlockedAchievements.includes(a.id) && a.condition(state))
+      .map(a => a.id);
+    
+    if (newUnlocked.length > 0) {
+      set((s) => ({ unlockedAchievements: [...s.unlockedAchievements, ...newUnlocked] }));
+    }
+  },
 
   nextMonth: () => {
     const state = get();
@@ -29,11 +44,9 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
     let eventInterestMod = 0;
     let eventRentMod = 1.0;
 
-    // 隨機事件處理 (5% 機率)
     if (Math.random() < 0.05) {
       const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
       eventToDisplay = { title: event.title, description: event.description };
-      
       if (event.impactType === 'cash') newCash += event.value;
       if (event.impactType === 'market') newMarketTrend *= event.value;
       if (event.impactType === 'interest') eventInterestMod = event.value;
@@ -41,16 +54,13 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
     }
 
     const updatedProperties = state.properties.map((prop) => {
-      // 應用事件影響
       const currentProp = {
         ...prop,
         interestRate: prop.interestRate + eventInterestMod,
         monthlyRent: prop.monthlyRent * eventRentMod
       };
-      
       const flow = calculatePropertyMonthlyFlow(currentProp);
       newCash += (flow.rentIncome - flow.interestPaid - flow.principalPaid);
-      
       return {
         ...prop,
         interestRate: currentProp.interestRate,
@@ -62,11 +72,10 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
       };
     }).filter(prop => prop.remainingTerm >= 0);
 
-    newCash -= 30000; // 生活費
+    newCash -= 30000;
 
     const totalPropertyValue = updatedProperties.reduce((sum, p) => sum + p.currentValue, 0);
     const totalDebt = updatedProperties.reduce((sum, p) => sum + p.loanAmount, 0);
-    
     const newHistoryRecord: FinancialHistory = {
       month: state.currentMonth + 1,
       totalAssets: newCash + totalPropertyValue,
@@ -84,6 +93,8 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
       marketTrend: newMarketTrend,
       lastEvent: eventToDisplay
     }));
+    
+    get().checkAchievements();
   },
 
   buyProperty: (propData) => {
@@ -101,6 +112,7 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
       cash: state.cash - downPayment,
       properties: [...state.properties, newProperty]
     }));
+    get().checkAchievements();
   },
 
   sellProperty: (id) => {
@@ -112,6 +124,7 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
       cash: state.cash + gain,
       properties: state.properties.filter(p => p.id !== id)
     }));
+    get().checkAchievements();
   },
 
   makeExtraPayment: (id, amount) => {
@@ -123,6 +136,7 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
         p.id === id ? { ...p, loanAmount: Math.max(0, p.loanAmount - amount) } : p
       )
     }));
+    get().checkAchievements();
   },
 
   resetGame: () => set({
@@ -131,6 +145,7 @@ export const useGameStore = create<ExtendedGameState>((set, get) => ({
     cash: INITIAL_CASH,
     properties: [],
     history: [],
-    lastEvent: null
+    lastEvent: null,
+    unlockedAchievements: []
   })
 }));
